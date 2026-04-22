@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIBE.EXE — Prompt Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #08080a;
+  --surface: #0f0f14;
+  --surface2: #16161e;
+  --border: rgba(255,255,255,0.07);
+  --text: #f0eeea;
+  --dim: #6b6880;
+  --faint: #2a2838;
+  --cat: #e8ff47;
+  --cat-glow: rgba(232,255,71,.18);
+  --mono: 'Space Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --r: 3px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;cursor:none}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9990;opacity:.5}
+#cur{position:fixed;width:8px;height:8px;background:var(--cat);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:background .4s;mix-blend-mode:screen}
+#ring{position:fixed;width:28px;height:28px;border:1px solid var(--cat);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.4;transition:border-color .4s}
+
+/* BOOT */
+#boot{position:fixed;inset:0;background:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:8000;transition:opacity .6s}
+#boot.gone{opacity:0;pointer-events:none}
+.boot-logo{font-family:var(--display);font-size:clamp(40px,8vw,80px);font-weight:800;letter-spacing:-.03em;color:var(--cat);text-shadow:0 0 40px rgba(232,255,71,.5);animation:flicker 3s ease infinite}
+@keyframes flicker{0%,94%,100%{opacity:1}95%{opacity:.3}96%{opacity:1}98%{opacity:.5}}
+.boot-sub{font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--dim);margin-top:12px}
+.boot-bar-wrap{width:200px;height:2px;background:var(--faint);margin-top:32px;border-radius:2px;overflow:hidden}
+.boot-bar{height:100%;background:var(--cat);width:0;animation:loadBar 1.2s cubic-bezier(.4,0,.2,1) .4s forwards}
+@keyframes loadBar{to{width:100%}}
+.boot-status{font-size:10px;color:var(--dim);margin-top:10px;letter-spacing:.1em;height:16px}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;background:rgba(8,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;height:56px}
+.logo{padding:0 24px;font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--cat);white-space:nowrap;flex-shrink:0;border-right:1px solid var(--border);transition:color .4s;text-shadow:0 0 20px var(--cat-glow)}
+.logo span{color:var(--dim);font-weight:400}
+.cat-nav{display:flex;overflow-x:auto;scrollbar-width:none;flex:1}
+.cat-nav::-webkit-scrollbar{display:none}
+.cat-btn{flex-shrink:0;padding:0 18px;height:56px;display:flex;align-items:center;gap:8px;background:none;border:none;border-right:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:none;transition:color .2s,background .2s;white-space:nowrap;position:relative}
+.cat-btn:hover{color:var(--text);background:rgba(255,255,255,.025)}
+.cat-btn.on{color:var(--cat)}
+.cat-btn.on::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--cat);box-shadow:0 0 8px var(--cat);animation:sIn .25s ease}
+@keyframes sIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.cat-count{font-size:10px;padding:1px 6px;background:var(--faint);border-radius:10px;color:var(--dim);transition:background .3s,color .3s}
+.cat-btn.on .cat-count{background:var(--cat);color:var(--black)}
+
+/* PROGRESS */
+.prog-track{height:2px;background:var(--faint)}
+.prog-fill{height:100%;background:var(--cat);transition:width .5s cubic-bezier(.4,0,.2,1),background .4s;box-shadow:0 0 6px var(--cat)}
+
+/* MAIN */
+main{max-width:860px;margin:0 auto;padding:48px 24px 100px;position:relative;z-index:1}
+.panel{display:none}
+.panel.on{display:block;animation:pIn .35s cubic-bezier(.16,1,.3,1)}
+@keyframes pIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* PANEL HERO */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:28px;margin-bottom:36px;border-bottom:1px solid var(--border);gap:20px;flex-wrap:wrap}
+.hero-eyebrow{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--cat);margin-bottom:8px}
+.hero-title{font-family:var(--display);font-size:clamp(26px,5vw,46px);font-weight:800;letter-spacing:-.025em;line-height:1.05}
+.hero-blurb{font-size:12px;color:var(--dim);margin-top:6px;max-width:480px;line-height:1.7}
+.hero-nav{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.arr{width:36px;height:36px;border:1px solid var(--border);background:var(--surface);color:var(--dim);font-size:14px;cursor:none;border-radius:var(--r);display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s}
+.arr:hover:not(:disabled){border-color:var(--cat);color:var(--cat)}
+.arr:disabled{opacity:.2;pointer-events:none}
+.nav-ct{font-size:11px;color:var(--dim);min-width:40px;text-align:center;letter-spacing:.05em}
+
+/* PIPS */
+.pips{display:flex;gap:7px;margin-bottom:28px;flex-wrap:wrap}
+.pip{height:3px;flex:1;min-width:18px;max-width:48px;background:var(--faint);border-radius:2px;cursor:none;transition:background .3s,box-shadow .3s}
+.pip.on{background:var(--cat);box-shadow:0 0 6px var(--cat)}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;box-shadow:0 0 60px -20px var(--cat-glow);transition:box-shadow .5s;animation:cIn .4s cubic-bezier(.16,1,.3,1) both}
+@keyframes cIn{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+.card-top{padding:20px 24px 0}
+.card-num{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--cat);margin-bottom:5px}
+.card-title{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.02em}
+.card-sum{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.6}
+
+/* SECTIONS */
+.sec{border-top:1px solid var(--border);margin-top:18px}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;cursor:none;transition:background .15s;user-select:none}
+.sec-hd:hover{background:rgba(255,255,255,.02)}
+.sec-left{display:flex;align-items:center;gap:10px}
+.pill{font-size:9px;letter-spacing:.18em;text-transform:uppercase;padding:3px 8px;border-radius:2px;border:1px solid;flex-shrink:0;transition:background .25s,color .25s}
+.p-prompt{color:var(--cat);border-color:var(--cat)}
+.sec.open .p-prompt{background:var(--cat);color:var(--black)}
+.p-ideal{color:#57e8b4;border-color:#57e8b4}
+.sec.open .p-ideal{background:#57e8b4;color:var(--black)}
+.p-crit{color:#57b4e8;border-color:#57b4e8}
+.sec.open .p-crit{background:#57b4e8;color:var(--black)}
+.p-bad{color:#e87257;border-color:#e87257}
+.sec.open .p-bad{background:#e87257;color:var(--black)}
+.chev{color:var(--dim);font-size:11px;transition:transform .35s cubic-bezier(.16,1,.3,1),color .2s}
+.sec.open .chev{transform:rotate(180deg);color:var(--cat)}
+.sec-body{max-height:0;overflow:hidden;transition:max-height .55s cubic-bezier(.16,1,.3,1),padding .35s;padding:0 24px}
+.sec.open .sec-body{max-height:2000px;padding:4px 24px 24px}
+
+/* CONTENT */
+.prompt-text{font-size:12.5px;line-height:1.9;color:#a09898;white-space:pre-wrap}
+.xml-t{color:var(--faint)}
+.xml-n{color:#c8aaff}
+.ideal-txt{font-size:12.5px;line-height:1.85;color:#a0b8a8;border-left:2px solid #57e8b4;padding-left:14px}
+.ideal-txt code{background:rgba(87,232,180,.1);color:#57e8b4;padding:1px 5px;border-radius:2px;font-size:11px}
+.crit-list{display:flex;flex-direction:column;gap:4px}
+.cr{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:#9898b0;padding:8px 10px;border:1px solid rgba(87,180,232,.1);border-radius:var(--r);opacity:0;transform:translateX(-5px);transition:opacity .3s,transform .3s}
+.cr.vis{opacity:1;transform:translateX(0)}
+.cr-ck{color:#57b4e8;font-size:11px;flex-shrink:0;margin-top:1px}
+.bad-q{background:rgba(232,114,87,.06);border:1px solid rgba(232,114,87,.2);border-left:2px solid #e87257;border-radius:var(--r);padding:13px 15px;font-size:12.5px;color:#a09090;font-style:italic;line-height:1.75;margin-bottom:12px}
+.fails-lbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#e87257;margin-bottom:7px}
+.fail{display:flex;gap:8px;font-size:11.5px;color:#a07070;padding:6px 0;border-bottom:1px solid rgba(232,114,87,.06);opacity:0;transform:translateX(5px);transition:opacity .3s,transform .3s}
+.fail:last-child{border-bottom:none}
+.fail.vis{opacity:1;transform:translateX(0)}
+.fail-x{color:#e87257;flex-shrink:0}
+
+/* COPY */
+.copy-wrap{display:flex;justify-content:flex-end;margin-bottom:10px}
+.copy-btn{appearance:none;background:transparent;border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:var(--r);cursor:none;transition:border-color .2s,color .2s,background .2s}
+.copy-btn:hover{border-color:var(--cat);color:var(--cat)}
+.copy-btn.done{background:var(--cat);color:var(--black);border-color:var(--cat)}
+
+/* SPARK */
+.spark{position:fixed;width:5px;height:5px;border-radius:50%;pointer-events:none;z-index:9980;animation:spk .6s ease-out forwards}
+@keyframes spk{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}}
+
+/* TOAST */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:11px;letter-spacing:.08em;padding:9px 18px;border-radius:var(--r);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:9900;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast .ok{color:var(--cat)}
+
+/* HINT */
+.hint{position:fixed;bottom:20px;right:20px;font-size:10px;letter-spacing:.08em;color:var(--faint);z-index:200;text-transform:uppercase}
+.hint kbd{background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:2px;font-family:inherit}
+
+@media(max-width:600px){
+  .hero{flex-direction:column;align-items:flex-start}
+  .cat-btn .cat-lbl{display:none}
+}
+</style>
+</head>
+<body>
+<div id="cur"></div>
+<div id="ring"></div>
+
+<div id="boot">
+  <div class="boot-logo">VIBE.EXE</div>
+  <div class="boot-sub">Prompt Library v1.0</div>
+  <div class="boot-bar-wrap"><div class="boot-bar"></div></div>
+  <div class="boot-status" id="bstat">initializing...</div>
+</div>
+
+<header>
+  <div class="logo" id="logo">VIBE<span>.EXE</span></div>
+  <nav class="cat-nav" id="cat-nav"></nav>
+</header>
+<div class="prog-track"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+<main id="main"></main>
+<div id="toast"><span class="ok">✓</span>&nbsp; copied</div>
+<div class="hint"><kbd>←</kbd> <kbd>→</kbd> &nbsp;·&nbsp; <kbd>space</kbd> expand all</div>
+
+<script>
+const D=[
+{id:'creative',label:'Creative & Social',icon:'🎨',color:'#e8ff47',glow:'rgba(232,255,71,.18)',
+blurb:'Social tools, portfolios, and creative applications people actually want to build.',
+prompts:[
+{title:'Portfolio Site',summary:'Stand out to employers with a polished, self-coded online presence.',
+prompt:`Build me a personal portfolio site with a dark theme (#0f0f0f background, #e8e8e8 text). Use smooth scrolling between:\n\nHero (name, one-line role, CTA), About (bio + skills grid), Projects (card grid), Contact (form). 3-col desktop, 2-col tablet, 1-col mobile grid. Each project card: cover image, title, tech stack pills, description. Hover overlay reveals GitHub + Live links. Staggered fade-up scroll animation. Sticky nav with blur backdrop. Dark/light toggle persisting in localStorage.`,
+ideal:'Delivers a fully functional dark-themed portfolio with responsive 3/2/1 column grid, hover overlay on project cards, smooth scroll navigation, sticky blurred nav, working dark/light toggle stored in localStorage, and staggered fade-up scroll animations. All sections (Hero, About, Projects, Contact) present and styled.',
+criteria:['Dark theme implemented (#0f0f0f bg, #e8e8e8 text)','All 4 sections present: Hero, About, Projects, Contact','Responsive grid: 3 col desktop → 2 tablet → 1 mobile','Project card shows image, title, tech pills, description','Hover overlay reveals GitHub + Live links on cards','Staggered fade-up animation on scroll into view','Sticky nav with backdrop-blur','Dark/light mode toggle persists in localStorage','Smooth scrolling between sections','Contact form present and functional'],
+bad:'"Creates a basic static HTML page with just a name and links list. No grid layout, no animations, no project cards with hover effects, no dark/light toggle."',
+fails:['No responsive grid (fails #3)','Missing hover overlay (fails #5)','No animations (fails #6)','No localStorage toggle (fails #8)','Missing sections (fails #2)']},
+
+{title:'Startup Landing Page',summary:'Validate a startup idea and capture waitlist emails.',
+prompt:`Create a startup landing page with: (1) Hero — bold headline, subheading, hero screenshot. (2) Social proof bar — 5 fake company logos. (3) Features — 3-col grid, 6 feature cards. (4) How it works — 3-step horizontal flow. (5) Pricing — 3 tiers (Free / Pro / Enterprise), middle tier visually distinguished as "Most Popular." Waitlist form triggers a confetti animation on successful submit. Social proof counter. Mobile responsive.`,
+ideal:'All 6 sections present in correct order. Hero includes CTA button + product mockup. Social proof bar with logos. Features grid: 3 columns, 6 cards with icons + descriptions. How It Works: 3 numbered steps with connectors. Pricing: 3 cards, middle card elevated + "Most Popular" badge. Confetti fires on form submit. Fully responsive.',
+criteria:['All 6 sections present in correct order','Hero has headline, subheading, CTA + mockup','Social proof bar with logos and label','Features: 3-column grid, 6 cards','How It Works: 3 steps with visual connector','Pricing: 3 tiers, middle card has "Most Popular" treatment','Confetti animation fires on form submit','Fully mobile responsive'],
+bad:'"Returns a single hero section with a headline and one button. No pricing, no features section, no confetti, no social proof."',
+fails:['Missing 5 of 6 sections','No pricing tiers (fails #6)','No confetti (fails #7)','No social proof bar (fails #3)']},
+
+{title:'Karaoke Tool',summary:'Group sing-alongs with real-time lyric sync and queue management.',
+prompt:`Build a karaoke web app that allows users to search songs, queue performances, and sing along in real time. Include a searchable song database (mock data fine), queue system, synchronized lyrics display, and performance mode with large readable text. Add optional scoring. Support solo and group use.`,
+ideal:'A web app with a search bar connected to a mock song database (10+ songs), a drag-reorderable queue, a full-screen lyrics display mode with synchronized scrolling, and a clean performance UI with large font. Scoring or fun feedback present. Design readable at distance for group use.',
+criteria:['Song search with real or mock database of ≥ 10 songs','Queue system: add, remove, reorder songs','Lyrics display synchronized during playback','Performance mode fills screen with large, high-contrast text','Optional scoring or feedback element included','Design works for group viewing (readable from distance)','Switching between queue songs is seamless'],
+bad:'"Here is a karaoke app. It plays a YouTube video. The lyrics are shown below in a small div. Users type in the song name in a text box."',
+fails:['No queue system (fails #2)','Lyrics static, not synchronized (fails #3)','Small div unusable for group viewing (fails #4, #6)','No searchable database (fails #1)','No scoring (fails #5)']}
+]},
+
+{id:'productivity',label:'Productivity',icon:'⚡',color:'#47e8a0',glow:'rgba(71,232,160,.18)',
+blurb:'Tools that reduce friction, surface clarity, and keep people moving.',
+prompts:[
+{title:'Habit Tracker',summary:'Build and reflect on daily routines — without the guilt.',
+prompt:`Create a habit tracking application. Users want progress without guilt or overwhelm. Include habit creation with flexible frequency, streak tracking, daily check-ins, and weekly/monthly summaries. Provide visual progress indicators like charts or heatmaps. Add customizable reminders. Keep interactions lightweight so logging takes only a few seconds.`,
+ideal:"A clean app with a daily dashboard showing today's habits as tappable checkboxes. Each habit shows streak count. Habit creation: name, frequency (daily/weekly/custom), optional reminder time. A calendar heatmap shows completion history. Weekly and monthly summary cards show trends. The UI avoids red/failure states—missed days are grey, not alarming.",
+criteria:['Habit creation with flexible frequency options','Daily check-in UI (one-tap or minimal friction)','Streak counter visible per habit','Weekly and monthly summary views','Visual progress (heatmap, chart, or graph)','Customizable reminder system','Non-shaming visual language for missed days','Logging interaction takes ≤ 5 seconds'],
+bad:'"A habit tracker with a table showing each day of the month. Missed days highlighted in red. Open a separate form to log each habit, entering date and habit name manually."',
+fails:['Red highlighting creates guilt the prompt wanted to avoid (fails #7)','Manual form entry contradicts quick logging (fails #8)','No streak tracking (fails #3)','No charts or heatmaps (fails #5)','No reminders (fails #6)']},
+
+{title:'Task Manager',summary:'Reduce mental load across school, work, and personal life.',
+prompt:`Build a task management system for users organizing responsibilities across school, work, and personal life. Users feel overloaded and need clarity, not complexity. Include task creation with priorities, due dates, tags, and subtasks. Add filtering/sorting. Support recurring tasks and quick-add. Provide a clear daily/weekly view. Include optional calendar sync. Keep it minimal.`,
+ideal:'A minimal task manager with a persistent quick-add bar (type + Enter to create in < 2 seconds). Tasks have priority indicators, due dates, and tags. Sidebar switches between Today, Upcoming, All Tasks. Filter/sort by tag, priority, or date. Subtasks expand inline. Recurring task option in creation modal. Optional Google Calendar sync.',
+criteria:['Task creation with priority, due date, tags, and subtasks','Quick-add input (keyboard shortcut or persistent bar)','Filtering and sorting by multiple criteria','Recurring task support','Daily and weekly view available','Optional calendar sync mentioned or implemented','Minimal interface — no unnecessary UI chrome','Workload is scannable at a glance'],
+bad:'"A task manager HTML table with columns: Task Name, Status, Priority, Due Date. Rows added by clicking Add Row. Sort by clicking column headers."',
+fails:['Table has high friction — no quick-add, no daily view (fails #2, #5)','No subtasks or tags (fails #1)','No filtering system (fails #3)','No recurring tasks (fails #4)','Feels like a spreadsheet not a task manager (fails #7)']},
+
+{title:'Personal Automation',summary:'Trigger-action workflows for non-technical users.',
+prompt:`Design a personal automation tool for non-technical users to create trigger-action workflows. Include pre-built templates, a visual builder, a log of past automations, and clear error handling. Simple enough for beginners, customizable enough for power users.`,
+ideal:'A visual workflow builder with an IF/THEN form selector. At least 5 pre-built templates. A log panel shows past runs with timestamps and success/fail status. Errors show plain-English explanations with a suggested fix. Beginners can activate a template in < 3 clicks; power users can modify conditions.',
+criteria:['Visual builder or form-based IF/THEN constructor (no raw code required)','At least 5 pre-built templates','Trigger types and action types clearly labeled','Log panel shows past runs with status and timestamps','Error messages in plain English with suggested next steps','Beginners can activate a template in under 3 clicks','Power users can customize trigger conditions','Mobile-accessible interface'],
+bad:'"Write a Python script using the requests library. Set up a cron job on your server to run it every hour. Use environment variables for your API keys."',
+fails:['Requires coding — inaccessible for non-technical users (fails #1, #6)','No visual builder, no templates, no UI (fails #1, #2)','No log panel or error handling UI (fails #4, #5)','Ignores the beginner audience requirement']}
+]},
+
+{id:'academic',label:'Academic',icon:'📚',color:'#47c8e8',glow:'rgba(71,200,232,.18)',
+blurb:'Study tools and research aids that match how students actually work.',
+prompts:[
+{title:'Homework Helper',summary:'Guide students through problems step by step — not just answers.',
+prompt:`Create a study tool that guides students through solving homework problems step by step. Students want to understand concepts, not just get answers. Break solutions into clear steps with explanations. Provide hints before full answers. Support math, science, and writing. Include practice problems and allow retrying similar questions. Adjust depth by user level.`,
+ideal:'A clean problem-input interface. The tool returns a step-by-step breakdown with each step labeled and explained. A "Show Hint" button reveals progressive hints before the full solution. Subject detection triggers appropriate formatting. A "Try Similar" button generates a variation. A level selector adjusts explanation verbosity.',
+criteria:['Step-by-step solution breakdown with each step labeled','Hints shown progressively before full answer revealed','Supports ≥ 3 subjects: math, science, writing','Subject-appropriate formatting (math renders equations)','Practice problems or "Try Similar" generates variations','Level selector adjusts explanation depth','Design feels educational, not answer-vending','Works on mobile'],
+bad:'"Homework Helper: Enter your problem below. [Input box]. Submit. Answer: [answer displayed instantly with no steps]."',
+fails:['No step-by-step breakdown (fails #1)','No hints or progressive reveal (fails #2)','No subject detection or formatting (fails #3, #4)','No practice or retry mechanism (fails #5)','Feels like an answer machine not a learning tool (fails #7)']},
+
+{title:'Class Project Tool',summary:'Coordinate group projects from milestone planning to export.',
+prompt:`Build a project management tool for students completing assignments or group projects. Include milestone planning, task breakdown, deadlines, progress tracking, collaboration support, note-taking, file attachments, and a timeline view. Make exporting or presenting the final work easy.`,
+ideal:'A student-focused Kanban + timeline hybrid. Milestone creation with sub-tasks and deadlines, shared board view for group collaboration, a notes panel with rich text editing, file attachment support, and visual progress tracking. An Export button generates a clean summary. UI structured but not overwhelming.',
+criteria:['Milestone planning with sub-task breakdown and deadlines','Visual timeline or calendar view of milestones','Progress tracking shows completion % per milestone','Collaboration supports shared boards or task assignment','Notes panel with rich text or markdown editing','File attachment functionality present','Export feature produces a summary document','UI designed for students, not corporate PMs'],
+bad:'"Use Trello. Create a board with columns: To Do, In Progress, Done. Make cards for each task. Share the board with your group members."',
+fails:['Just suggests an existing tool — no actual build','No timeline view (fails #2)','No notes or file attachments (fails #5, #6)','No export feature (fails #7)']},
+
+{title:'Study Companion',summary:'Spaced repetition and active recall generated from your own notes.',
+prompt:`Design a study companion that helps users actively review and retain information. Include flashcard creation, quizzes, and spaced repetition scheduling. Allow users to upload notes or paste text to generate study materials. Track performance and identify weak areas. Provide targeted review sessions based on mistakes.`,
+ideal:'Pasting notes auto-generates a flashcard deck and practice quiz. Flashcards use spaced repetition (SM-2 algorithm) to schedule reviews. Quiz mode offers multiple choice, true/false, and short answer. A performance dashboard shows accuracy per topic and highlights weak areas. "Focus Session" auto-queues cards the student has struggled with.',
+criteria:['Flashcard creation (manual and from pasted notes)','Quiz mode with multiple question types','Spaced repetition scheduling implemented','Notes upload → auto-generate materials','Performance tracking with weak area identification','Targeted review sessions based on past mistakes','Interactive, engaging UX — not passive display'],
+bad:'"A flashcard app where you manually create cards and flip through them in random order. All cards shown every session regardless of performance."',
+fails:['No spaced repetition — core requirement (fails #3)','No auto-generation from notes (fails #4)','No quiz mode (fails #2)','No performance tracking (fails #5)','Showing all cards defeats the entire point (fails #6)']}
+]},
+
+{id:'data',label:'Web & Data',icon:'🌐',color:'#a047e8',glow:'rgba(160,71,232,.18)',
+blurb:'Scrapers, dashboards, bots — the infrastructure layer of vibe coding.',
+prompts:[
+{title:'Web Scraper',summary:'Structured data collection with pagination, cleaning, and export.',
+prompt:`Build a robust web scraping tool that collects structured data from a specified website and prepares it for analysis. Handle pagination, dynamic content loading, and filtering. Clean and normalize the data into a consistent schema. Remove duplicates and handle missing values. Provide export options (CSV or JSON). Include logging and error handling for failed requests.`,
+ideal:'A Python scraper using Playwright (for dynamic content) + BeautifulSoup. Accepts a target URL and CSS selectors via config. Handles multi-page pagination automatically. Deduplicates on a key field, fills missing values with nulls, normalizes strings. Outputs to CSV and JSON. Logging captures each request with URL, status code, items found, and errors. Failed requests retry 3× with exponential backoff.',
+criteria:['Handles pagination (multi-page scraping)','Handles dynamic content (JS-rendered pages)','Data normalized to a consistent schema','Duplicate removal logic present','Missing value handling documented','CSV and JSON export both available','Request logging with status and error details','Error handling with retry logic'],
+bad:'"Here is a requests.get() call that fetches one page and prints the raw HTML to the console."',
+fails:['Fetches a single static page (fails #1, #2)','Outputs raw HTML instead of structured data (fails #3)','No normalization, no dedup, no export (fails #3, #4, #6)','No error handling or logging (fails #7, #8)']},
+
+{title:'Dashboard',summary:'Interactive metrics and trends without digging through raw data.',
+prompt:`Create an interactive dashboard that visualizes key metrics and trends for a dataset. Include summary metrics, charts, and tables. Support filtering, date ranges, and segmentation. Highlight key insights at the top. Make the layout scannable. Ensure responsiveness across devices.`,
+ideal:'A React dashboard with 4 KPI summary cards at the top. Below: a line chart for trends over time, a bar chart for category comparison, and a sortable data table. A filter bar controls date range, segment, and metric — all charts update reactively. An "Insights" banner auto-generates 2-3 key findings. Responsive grid collapses gracefully to mobile.',
+criteria:['Summary metric cards visible at the top','At least 2 chart types (line, bar, pie, etc.)','Data table with sortable columns','Filtering and date range controls','Segmentation/dimension selector','Key insights highlighted prominently','Charts update reactively to filter changes','Responsive across mobile and desktop'],
+bad:'"A static HTML page showing a single bar chart image. The chart is a PNG that cannot be interacted with. No filters, no date range, no KPI cards, and no table."',
+fails:['Static image — opposite of interactive (fails all interactive criteria)','No filtering, date range, or segmentation (fails #4, #5)','No KPI cards, no table (fails #1, #3)','No insights (fails #6)']},
+
+{title:'Slackbot / Workflow',summary:'Reduce manual follow-ups and improve team coordination.',
+prompt:`Design a workflow automation bot (e.g., in Slack) that streamlines repetitive team processes. Support commands, scheduled actions, and event-based triggers. Provide clear and concise responses. Integrate with external tools if needed. Include logs or summaries of actions taken. Keep interactions short and actionable.`,
+ideal:'A Slack bot using Bolt SDK supporting slash commands (/standup, /assign, /status), scheduled daily digests, and event triggers (new message in #bugs → create Jira ticket). Each bot response is ≤ 3 lines with one clear CTA. Integrates with Jira, Google Calendar, and GitHub via OAuth. Admin panel shows a log of all bot actions.',
+criteria:['Slash command support (≥ 3 commands)','Scheduled actions (time-based triggers)','Event-based triggers (react to messages or events)','Responses are concise (≤ 3 lines)','External tool integration mentioned or implemented','Action log or summary available','Clear setup instructions included'],
+bad:'"A bot that responds to every message in every channel with \'I am a bot. Please see your admin for help.\' No commands, no scheduling, no integrations, no logs."',
+fails:['No slash commands (fails #1)','No scheduled actions or event triggers (fails #2, #3)','No external integrations (fails #5)','No logs (fails #6)','Bot adds friction instead of removing it']}
+]},
+
+{id:'finance',label:'Finance',icon:'💰',color:'#e8b447',glow:'rgba(232,180,71,.18)',
+blurb:'Budgeting tools, trading algorithms, and financial models that actually compute.',
+prompts:[
+{title:'Budget Tracker',summary:'Personal finance visibility without spreadsheet hell.',
+prompt:`Build a personal budgeting tool that helps users track income, expenses, and savings goals. Include transaction entry (manual + CSV import), category tagging, monthly budget limits per category, and alerts when nearing the limit. Show a monthly summary and trend charts. Support recurring transactions.`,
+ideal:'A React app with a transaction log (date, amount, category, note), CSV import with auto-detect columns, and category budget cards showing spent/remaining with a progress bar. Alerts at 80% and 100% of budget. Monthly summary shows total in/out and net savings. A chart shows spending trends over 3-6 months. Recurring transactions auto-populate on schedule.',
+criteria:['Transaction entry: manual input with date, amount, category, note','CSV import with auto-column detection','Category budget limits with spent/remaining display','Alert or visual warning at budget threshold','Monthly summary (income, expenses, net savings)','Trend chart spanning multiple months','Recurring transaction support','Data persists across sessions'],
+bad:'"A spreadsheet template in Google Sheets with columns for date, amount, and category. Use SUM formulas to total your expenses."',
+fails:['A template, not a built app (fails all criteria)','No CSV import (fails #2)','No budget limits or alerts (fails #3, #4)','No charts or trends (fails #6)','No recurring transactions (fails #7)']},
+
+{title:'Financial Model',summary:'Scenario modeling and projections for structured financial analysis.',
+prompt:`Create a financial modeling tool that allows users to build simple scenario-based projections. Include revenue and cost inputs, growth rate assumptions, scenario comparison (base, bull, bear), and an output summary table + charts. Support monthly and annual views. Allow exporting the model as a CSV or PDF summary.`,
+ideal:'A structured form UI where users enter revenue streams, cost categories, and growth assumptions per scenario. Three scenario columns (Base, Bull, Bear) auto-calculate outputs. A summary table shows year 1-5 projections. A line chart visualizes the scenarios side-by-side. Monthly/annual toggle recomputes all values. Export outputs a clean CSV and formatted PDF one-pager.',
+criteria:['Revenue and cost input fields with labeled categories','Growth rate assumptions per scenario','Three scenario columns (Base, Bull, Bear)','Auto-calculated output projections (Y1-Y5)','Summary table with all scenarios side-by-side','Chart visualizes scenario comparison','Monthly and annual view toggle','CSV and PDF export both functional'],
+bad:'"Enter your numbers into Excel. Use =NPV() for discounted cash flow. Build a pivot table for scenario comparison."',
+fails:['Not a built tool — just Excel instructions (fails all criteria)','No UI, no visualization, no export feature','Requires Excel expertise from the user','No scenario comparison built into the product']}
+]},
+
+{id:'health',label:'Health',icon:'🏃',color:'#e847a0',glow:'rgba(232,71,160,.18)',
+blurb:'Wellness tools that live with you — low friction, meaningful feedback, privacy first.',
+prompts:[
+{title:'Wellness Dashboard',summary:'Sleep, steps, water, mood — all in one calming view.',
+prompt:`Build a personal health and wellness dashboard. Track: sleep (hours/night, quality), steps/activity (daily count, weekly goal), water intake (daily cups, streak), and mood (emoji-based, 5 levels). Show trend charts per metric and an overall Wellness Score (0-100). Users should log today's data in under 30 seconds. Data persists in localStorage.`,
+ideal:"A card-based dark dashboard. Each card shows today's value, a mini trend chart, and delta vs. last week. Top summary bar shows overall Wellness Score. Clicking any card opens a modal with a 30-day chart and a log form. A 'Log Today' floating button opens a quick-entry form covering all metrics. Data persists in localStorage.",
+criteria:['All 4 metrics displayed: sleep, steps, water, mood','Trend chart per metric (7-30 days)','Overall Wellness Score computed and displayed','Delta vs. last week shown on each card','"Log Today" flow takes under 30 seconds','Modal with 30-day chart per metric','Data persists across sessions (localStorage)','Handles fewer than 3 data points gracefully'],
+bad:'"A health app. Enter your sleep hours in a text box. Enter your steps. Click Save. Your data is shown in a list below."',
+fails:['No charts or trend visualization (fails #2)','No Wellness Score (fails #3)','No delta comparison (fails #4)','Logging is friction-heavy (fails #5)','No data persistence (fails #7)']},
+
+{title:'Meal Planner',summary:'Weekly meal planning with auto-generated grocery lists.',
+prompt:`Build a meal planning tool that lets users plan weekly meals, track nutritional targets, and auto-generate a grocery list. Include recipe saving, substitution suggestions, and dietary filter options (vegan, gluten-free, etc.). Generate a consolidated grocery list from the week's plan. Keep interaction simple enough for daily use.`,
+ideal:'A 7-day grid where users click any meal slot to assign a recipe. Recipe library with search and dietary filters. Nutritional summary updates as meals are planned. Auto-generated grocery list consolidates ingredients across all planned meals, grouped by aisle category. Substitution suggestions appear if a recipe conflicts with dietary settings. All data in localStorage.',
+criteria:['7-day meal planning grid','Recipe library with search functionality','Dietary filter options (vegan, GF, etc.)','Nutritional summary updates as meals are added','Auto-generated grocery list from planned meals','Ingredients grouped logically in grocery list','Substitution suggestions for dietary conflicts','Data persists across sessions'],
+bad:'"A list of 7 days where you can type in what you want to eat for breakfast, lunch, and dinner. No nutritional info, no grocery list, no recipes."',
+fails:['Plain text fields — no recipe library (fails #2)','No dietary filters (fails #3)','No nutritional summary (fails #4)','No grocery list generation (fails #5, #6)','No substitution suggestions (fails #7)']}
+]}
+];
+
+// STATE
+let ci=0,pi=0,openS=new Set([0]);
+
+// CURSOR
+const cur=document.getElementById('cur'),ring=document.getElementById('ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+(function loop(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(loop)})();
+
+function theme(c,g){
+  document.documentElement.style.setProperty('--cat',c);
+  document.documentElement.style.setProperty('--cat-glow',g);
+  cur.style.background=c;ring.style.borderColor=c;
+  const logo=document.getElementById('logo');logo.style.color=c;logo.style.textShadow=`0 0 20px ${g}`;
+  const pf=document.getElementById('prog');pf.style.background=c;pf.style.boxShadow=`0 0 6px ${c}`;
+}
+
+function spark(x,y,c){
+  for(let i=0;i<6;i++){
+    const el=document.createElement('div');el.className='spark';
+    const a=(i/6)*Math.PI*2,d=30+Math.random()*40;
+    el.style.cssText=`left:${x}px;top:${y}px;background:${c};--tx:${Math.cos(a)*d}px;--ty:${Math.sin(a)*d}px;animation-delay:${i*30}ms`;
+    document.body.appendChild(el);setTimeout(()=>el.remove(),700);
+  }
+}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function buildNav(){
+  const nav=document.getElementById('cat-nav');nav.innerHTML='';
+  const total=D.reduce((s,c)=>s+c.prompts.length,0);
+  const done=D.slice(0,ci).reduce((s,c)=>s+c.prompts.length,0)+pi+1;
+  document.getElementById('prog').style.width=(done/total*100)+'%';
+  D.forEach((cat,i)=>{
+    const btn=document.createElement('button');
+    btn.className='cat-btn'+(i===ci?' on':'');
+    btn.innerHTML=`<span>${cat.icon}</span><span class="cat-lbl">${cat.label}</span><span class="cat-count">${cat.prompts.length}</span>`;
+    btn.addEventListener('click',e=>{
+      if(i===ci)return;spark(e.clientX,e.clientY,D[i].color);
+      ci=i;pi=0;openS=new Set([0]);theme(D[ci].color,D[ci].glow);buildNav();buildMain();
+    });
+    nav.appendChild(btn);
+  });
+}
+
+function buildMain(){
+  const cat=D[ci],p=cat.prompts[pi];
+  const main=document.getElementById('main');
+  main.innerHTML=`<div class="panel on">
+    <div class="hero">
+      <div>
+        <div class="hero-eyebrow">${cat.icon} ${cat.label} — ${String(pi+1).padStart(2,'0')} / ${String(cat.prompts.length).padStart(2,'0')}</div>
+        <div class="hero-title">${esc(p.title)}</div>
+        <div class="hero-blurb">${esc(p.summary)}</div>
+      </div>
+      <div class="hero-nav">
+        <button class="arr" id="pbtn" ${(ci===0&&pi===0)?'disabled':''} onclick="goPrev(event)">←</button>
+        <span class="nav-ct">${pi+1}/${cat.prompts.length}</span>
+        <button class="arr" id="nbtn" ${(ci===D.length-1&&pi===cat.prompts.length-1)?'disabled':''} onclick="goNext(event)">→</button>
+      </div>
+    </div>
+    <div class="pips">${cat.prompts.map((_,j)=>`<div class="pip ${j===pi?'on':''}" onclick="goPip(${j},event)"></div>`).join('')}</div>
+    <div class="card">
+      <div class="card-top">
+        <div class="card-num">${cat.icon} ${cat.label.toUpperCase()} — PROMPT ${String(pi+1).padStart(2,'0')}</div>
+        <div class="card-title">${esc(p.title)}</div>
+        <div class="card-sum">${esc(p.summary)}</div>
+      </div>
+      ${mkSec(0,'pill-prompt','Prompt',`<div class="copy-wrap"><button class="copy-btn">copy prompt</button></div><div class="prompt-text">${esc(p.prompt).replace(/&lt;(\/?)([a-zA-Z][\w-]*)&gt;/g,(_,sl,nm)=>`<span class="xml-t">&lt;${sl}</span><span class="xml-n">${nm}</span><span class="xml-t">&gt;</span>`)}</div>`)}
+      ${mkSec(1,'pill-ideal','Ideal Response',`<div class="ideal-txt">${esc(p.ideal).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n/g,'<br>')}</div>`)}
+      ${mkSec(2,'pill-crit','Eval Criteria',`<div class="crit-list">${p.criteria.map(c=>`<div class="cr"><span class="cr-ck">✓</span>${esc(c)}</div>`).join('')}</div>`)}
+      ${mkSec(3,'pill-bad','Bad Response',`<div class="bad-q">${esc(p.bad)}</div>${Array.isArray(p.fails)?`<div class="fails-lbl">fails</div>${p.fails.map(f=>`<div class="fail"><span class="fail-x">✗</span>${esc(f)}</div>`).join('')}`:''}`)}
+    </div>
+  </div>`;
+
+  setTimeout(()=>{
+    document.querySelectorAll('.cr,.fail').forEach((el,i)=>setTimeout(()=>el.classList.add('vis'),i*40));
+  },80);
+
+  document.querySelectorAll('.sec-hd').forEach(hd=>{
+    hd.addEventListener('click',e=>{
+      const sec=hd.closest('.sec'),idx=+sec.dataset.idx;
+      if(openS.has(idx)){openS.delete(idx);sec.classList.remove('open')}
+      else{openS.add(idx);sec.classList.add('open');spark(e.clientX,e.clientY,D[ci].color)}
+    });
+  });
+
+  document.querySelectorAll('.copy-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      navigator.clipboard.writeText(p.prompt).then(()=>{
+        btn.textContent='✓ copied';btn.classList.add('done');showToast();
+        setTimeout(()=>{btn.textContent='copy prompt';btn.classList.remove('done')},1800);
+      });
+    });
+  });
+}
+
+function mkSec(idx,pill,label,body){
+  return`<div class="sec ${openS.has(idx)?'open':''}" data-idx="${idx}">
+    <div class="sec-hd"><div class="sec-left"><span class="pill ${pill}">${label}</span></div><span class="chev">▼</span></div>
+    <div class="sec-body">${body}</div>
+  </div>`;
+}
+
+function goNext(e){
+  spark(e.clientX,e.clientY,D[ci].color);
+  if(pi<D[ci].prompts.length-1){pi++}else if(ci<D.length-1){ci++;pi=0;theme(D[ci].color,D[ci].glow)}
+  openS=new Set([0]);buildNav();buildMain();
+}
+function goPrev(e){
+  spark(e.clientX,e.clientY,D[ci].color);
+  if(pi>0){pi--}else if(ci>0){ci--;pi=D[ci].prompts.length-1;theme(D[ci].color,D[ci].glow)}
+  openS=new Set([0]);buildNav();buildMain();
+}
+function goPip(i,e){if(i===pi)return;spark(e.clientX,e.clientY,D[ci].color);pi=i;openS=new Set([0]);buildNav();buildMain();}
+
+document.addEventListener('keydown',e=>{
+  const f={clientX:window.innerWidth/2,clientY:window.innerHeight/2};
+  if(e.key==='ArrowRight'){e.preventDefault();goNext(f)}
+  if(e.key==='ArrowLeft'){e.preventDefault();goPrev(f)}
+  if(e.key===' '){e.preventDefault();[0,1,2,3].forEach(i=>openS.add(i));buildMain()}
+});
+
+const toast=document.getElementById('toast');let tt;
+function showToast(){toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),1400)}
+
+// BOOT
+const msgs=['initializing...','loading prompts...','indexing eval sets...','calibrating rubrics...','ready.'];
+let bm=0;const bs=document.getElementById('bstat');
+const bi=setInterval(()=>{if(bm>=msgs.length){clearInterval(bi);return}bs.textContent=msgs[bm++]},280);
+setTimeout(()=>{
+  document.getElementById('boot').classList.add('gone');
+  theme(D[0].color,D[0].glow);buildNav();buildMain();
+},1600);
+</script>
+</body>
+</html>
